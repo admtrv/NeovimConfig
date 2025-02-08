@@ -42,5 +42,5 @@ This repository contains my personal, lightweight Neovim configuration tailored 
 - `clangd` language server and `clangformat`
 - [ripgrep](https://github.com/BurntSushi/ripgrep) for better text search
 - [Nerd Font](https://www.nerdfonts.com/) provides wide range of icons
-- 
+
 Upon startup, plugins will be installed and set up automatically by [lazy.nvim](https://github.com/folke/lazy.nvim). You can explore `init.lua` and map hotkeys to adapt config to your workflow!
