@@ -105,7 +105,36 @@ require("lazy").setup({
     { 
     	"simrat39/symbols-outline.nvim", 
     	config = function()
-        	require("symbols-outline").setup()
+        	require("symbols-outline").setup({
+    			symbols = {
+        			File = { icon = "" },
+        			Module = { icon = "" },
+        			Namespace = { icon = "" },
+        			Package = { icon = "󰏖" },
+        			Class = { icon = "" },
+        			Method = { icon = "󰊕" },
+        			Property = { icon = "" },
+       				Field = { icon = "" },
+        			Constructor = { icon = "󱌢" },
+        			Enum = { icon = "" },
+        			Interface = { icon = "" },
+        			Function = { icon = "ƒ" },
+        			Variable = { icon = "" },
+        			Constant = { icon = "const" },
+        			String = { icon = "" },
+        			Number = { icon = "" },
+        			Boolean = { icon = "⊨" },
+        			Array = { icon = "" },
+        			Object = { icon = "⦿" },
+        			Key = { icon = "" },
+        			Null = { icon = "NULL" },
+        			EnumMember = { icon = "" },
+        			Struct = { icon = "󱒐" },
+        			Event = { icon = "" },
+        			Operator = { icon = "" },
+        			TypeParameter = { icon = "" },
+    			}
+			})
     	end
     },
 
@@ -370,7 +399,6 @@ require("lazy").setup({
       		})
     	end,
   	},
-
 })
 
 -- ---------
