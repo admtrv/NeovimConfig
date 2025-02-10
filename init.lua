@@ -1,22 +1,32 @@
--- include lazy.nvim
+-- lazy
 vim.opt.runtimepath:prepend("~/.local/share/nvim/lazy/lazy.nvim")
 
--- interface settings
+-- --------
+-- settings
+-- --------
+
+-- interface
 vim.o.number = true
 vim.o.relativenumber = true
 vim.o.termguicolors = true
 vim.o.background = "dark"
 
--- tab settings
+-- tab
 vim.o.expandtab = true
 vim.o.shiftwidth = 4
 vim.o.tabstop = 4
 vim.o.softtabstop = 4
 
--- menu settings
+-- menu
 vim.o.completeopt = "menu,menuone,noselect"
 
--- plugins setup using lazy.nvim
+-- font
+vim.o.guifont = "FiraCode Nerd Font:h14"
+
+-- -------
+-- plugins
+-- -------
+
 require("lazy").setup({
     -- custom start screen
     { 
@@ -28,13 +38,13 @@ require("lazy").setup({
     		-- ascii art
     		local ascii_art = {
         		"                                              						",
-        		"       ███████████           █████      ██						",
+        		"       ███████████           █████      ██					    ",
         		"      ███████████             █████ 							",
-        		"      ████████████████ ███████████ ███   ███████		",
+        		"      ████████████████ ███████████ ███   ███████	    ",
         		"     ████████████████ ████████████ █████ ██████████████	",
         		"    █████████████████████████████ █████ █████ ████ █████	",
         		"  ██████████████████████████████████ █████ █████ ████ █████	",
-        		" ██████  ███ █████████████████ ████ █████ █████ ████ ██████	"
+        		" ██████  ███ █████████████████ ████ █████ █████ ████ ██████ "
     		}
 
     		-- yellow color
@@ -65,7 +75,7 @@ require("lazy").setup({
     		require("nvim-tree").setup({
       			git = {
         			enable = true,
-        			ignore = false,
+        			ignore = true,
         			show_on_dirs = true,
       			},
       			renderer = {
@@ -120,7 +130,7 @@ require("lazy").setup({
     	end
     },
     
-    -- ai complete
+    -- ai auto complete
     { 
     	"tzachar/cmp-tabnine",
         build = "./install.sh",
@@ -314,45 +324,152 @@ require("lazy").setup({
     		})
   		end
 	},
+	
+	-- notifications
+    {
+        "rcarriga/nvim-notify",
+        config = function()
+            require("notify").setup({
+                top_down = true,
+                timeout = 300,
+                level = "trace",
+            })
+            vim.notify = require("notify")
+        end,
+    },
+
+    -- folding pairs
+    {
+        "kevinhwang91/nvim-ufo",
+        dependencies = { "kevinhwang91/promise-async" },
+        config = function()
+            vim.o.foldcolumn = '0'
+            vim.o.foldlevel = 99
+            vim.o.foldlevelstart = 99
+            vim.o.foldenable = true
+            require("ufo").setup()
+        end,
+    },
+
+	-- shortcuts help
+    {
+    	"folke/which-key.nvim",
+    	event = "VeryLazy",
+    	config = function(_, opts)
+      		local wk = require("which-key")
+      		wk.setup(opts)
+      		wk.add({
+        		{ "<leader>e", group = "Explorer", icon = "" },
+        		{ "<leader>f", group = "Find", icon = "" },
+        		{ "<leader>r", group = "Refactor", icon = "" },
+        		{ "<leader>d", group = "Diagnostics", icon = "" },
+        		{ "<leader>c", group = "CMake", icon = "" },
+        		{ "<leader>g", group = "Git", icon = "󰊢" },
+        		{ "<leader>u", group = "Folding", icon = "󰕎" },
+        		{ "<leader>t", group = "Terminal", icon = "" },
+      		})
+    	end,
+  	},
+
 })
 
--- hot keys
-vim.api.nvim_set_keymap("n", "<leader>t", ":ToggleTerm<CR>", { noremap = true, silent = true }) -- terminal (t, terminal)
-vim.api.nvim_set_keymap("t", "<C-t>", "<C-\\><C-n>:ToggleTerm<CR>", { noremap = true, silent = true }) -- exit terminal (Ctrl+T)
+-- ---------
+-- functions
+-- ---------
 
-vim.api.nvim_set_keymap("n", "<leader>e", ":NvimTreeToggle<CR>", { noremap = true, silent = true }) -- file explorer (e, explorer)
-vim.api.nvim_set_keymap("n", "<leader>fe", ":NvimTreeFocus<CR>", { noremap = true, silent = true }) -- focus file explorer (fe, focus explorer)
+-- focus terminal
+local function focus_terminal()
+    local term_filetype = "toggleterm"
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+        local buf = vim.api.nvim_win_get_buf(win)
+        if vim.api.nvim_buf_get_option(buf, "filetype") == term_filetype then
+            vim.api.nvim_set_current_win(win)
+            return
+        end
+    end
+    require("toggleterm").toggle(0)
+end
 
-vim.api.nvim_set_keymap("n", "<leader>ff", ":Telescope find_files<CR>", { noremap = true, silent = true }) -- file search (ff, find file)
-vim.api.nvim_set_keymap("n", "<leader>ft", ":Telescope live_grep<CR>", { noremap = true, silent = true }) -- text search (ft, find text)
+-- open/close terminal
+local function open_close_terminal()
+    require("toggleterm").toggle()
+end
 
-vim.api.nvim_set_keymap("n", "<leader>gd", "<cmd>lua vim.lsp.buf.definition()<CR>", { noremap = true, silent = true }) -- go definition (gd, go definition)
-vim.api.nvim_set_keymap("n", "<leader>r", "<cmd>lua vim.lsp.buf.rename()<CR>", { noremap = true, silent = true }) -- rename variable (r, rename)
-vim.api.nvim_set_keymap("n", "<leader>f", "<cmd>lua vim.lsp.buf.format()<CR>", { noremap = true, silent = true }) -- file formatting (f, format)
+-- open/close git diff
+local function open_close_diff()
+  local diffview_open = false
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    local ft = vim.api.nvim_buf_get_option(buf, "filetype")
+    if ft == "DiffviewFiles" or ft == "DiffviewFileHistory" then
+      diffview_open = true
+      break
+    end
+  end
+  if diffview_open then
+    vim.cmd("DiffviewClose")
+  else
+    vim.cmd("DiffviewOpen")
+  end
+end
 
-vim.api.nvim_set_keymap("n", "<leader>x", ":Trouble diagnostics toggle<CR>", { noremap = true, silent = true }) -- diagnostics panel (x, errors)
+-- focus tab
+local function focus_tab()
+  require("bufferline").pick_buffer()	-- require("bufferline").go_to_buffer(1, true)
+end
 
-vim.api.nvim_set_keymap("n", "<leader>cm", ":CMakeBuild<CR>", { noremap = true, silent = true }) -- cmake project build (cm, cmake build)
-vim.api.nvim_set_keymap("n", "<leader>cr", ":CMakeRun<CR>", { noremap = true, silent = true }) -- cmake project run (cr, cmake run)
+-- ---------
+-- shortcuts
+-- ---------
 
-vim.api.nvim_set_keymap("n", "<leader>od", "<cmd>lua vim.lsp.buf.hover()<CR>", { noremap = true, silent = true }) -- open documentation (od, open documentation)
+-- terminal
+vim.keymap.set({ "n", "t" }, "<C-t>", open_close_terminal, { desc = "Open/close terminal", noremap = true, silent = true })	-- open/close
+vim.keymap.set("n", "<leader>tf", focus_terminal, { desc = "Focus terminal", noremap = true, silent = true })				-- focus
 
-vim.api.nvim_set_keymap("n", "<leader>gb", ":Gitsigns blame_line<CR>", { noremap = true, silent = true }) -- git blame (gb, git blame)
-vim.api.nvim_set_keymap("n", "<leader>gn", ":Gitsigns next_hunk<CR>", { noremap = true, silent = true }) -- next git hunk (gn, git next)
-vim.api.nvim_set_keymap("n", "<leader>gp", ":Gitsigns prev_hunk<CR>", { noremap = true, silent = true }) -- previous git hunk (gp, git previous)
-vim.api.nvim_set_keymap("n", "<leader>gr", ":Gitsigns reset_hunk<CR>", { noremap = true, silent = true }) -- reset git hunk (gr, git reset)
-vim.api.nvim_set_keymap("n", "<leader>gs", ":Gitsigns stage_hunk<CR>", { noremap = true, silent = true }) -- stage git hunk (gs, git stage)
-vim.api.nvim_set_keymap("n", "<leader>gu", ":Gitsigns undo_stage_hunk<CR>", { noremap = true, silent = true }) -- undo git stage (gu, git undo)
-vim.api.nvim_set_keymap("n", "<leader>gd", ":DiffviewOpen<CR>", { noremap = true, silent = true }) -- open git diff view (gd, git diff)
-vim.api.nvim_set_keymap("n", "<leader>gq", ":DiffviewClose<CR>", { noremap = true, silent = true }) -- close git diff view (gq, git quit)
+-- file explorer
+vim.keymap.set("n", "<leader>ee", ":NvimTreeToggle<CR>", { desc = "Open/close explorer", noremap = true, silent = true })	-- open/close
+vim.keymap.set("n", "<leader>ef", ":NvimTreeFocus<CR>", { desc = "Focus explorer", noremap = true, silent = true })			-- focus
 
-vim.api.nvim_set_keymap("n", "<C-z>", "u", { noremap = true, silent = true }) -- undo (Ctrl+Z)
-vim.api.nvim_set_keymap("n", "<C-y>", "<C-r>", { noremap = true, silent = true }) -- redo (Ctrl+Y)
-vim.api.nvim_set_keymap("i", "<C-z>", "<Esc>ui", { noremap = true, silent = true }) -- undo insert mode (Ctrl+Z in insert mode)
-vim.api.nvim_set_keymap("i", "<C-y>", "<Esc><C-r>i", { noremap = true, silent = true }) -- redo insert mode (Ctrl+Y in insert mode)
+-- search
+vim.keymap.set("n", "<leader>ff", ":Telescope find_files<CR>", { desc = "Find file", noremap = true, silent = true })	-- file
+vim.keymap.set("n", "<leader>ft", ":Telescope live_grep<CR>", { desc = "Find text", noremap = true, silent = true })	-- text
 
-vim.api.nvim_set_keymap("n", "<S-l>", ":BufferLineCycleNext<CR>", { noremap = true, silent = true }) -- right tab (Shift+L)
-vim.api.nvim_set_keymap("n", "<S-h>", ":BufferLineCyclePrev<CR>", { noremap = true, silent = true }) -- left tab (Shift+R)
-vim.api.nvim_set_keymap("n", "<leader>tc", ":Bdelete<CR>", { noremap = true, silent = true }) -- close tab (tb, tab close)
+-- refactor
+vim.keymap.set("n", "<leader>rd", "<cmd>lua vim.lsp.buf.definition()<CR>", { desc = "Go to definition", noremap = true, silent = true })	-- definition
+vim.keymap.set("n", "<leader>rr", "<cmd>lua vim.lsp.buf.rename()<CR>", { desc = "Rename symbol", noremap = true, silent = true })     		-- rename
+vim.keymap.set("n", "<leader>rf", "<cmd>lua vim.lsp.buf.format()<CR>", { desc = "Format document", noremap = true, silent = true })     	-- formatting
+vim.keymap.set("n", "<leader>rh", "<cmd>lua vim.lsp.buf.hover()<CR>", { desc = "Hover documentation", noremap = true, silent = true })      -- documentation
 
-vim.api.nvim_set_keymap("n", "<F12>", ":SymbolsOutline<CR>", { noremap = true, silent = true }) -- open code structure
+-- diagnostics
+vim.keymap.set("n", "<leader>de", ":Trouble diagnostics toggle<CR>", { desc = "Open/close errors", noremap = true, silent = true })	-- open/close errors
+
+-- cmake
+vim.keymap.set("n", "<leader>cm", ":CMakeBuild<CR>", { desc = "CMake build", noremap = true, silent = true })	-- build
+vim.keymap.set("n", "<leader>cr", ":CMakeRun<CR>", { desc = "CMake run", noremap = true, silent = true })		-- run
+
+-- git
+vim.keymap.set("n", "<leader>gb", ":Gitsigns blame_line<CR>", { desc = "Git blame", noremap = true, silent = true })			-- blame
+vim.keymap.set("n", "<leader>gn", ":Gitsigns next_hunk<CR>", { desc = "Next git hunk", noremap = true, silent = true })        	-- next hunk
+vim.keymap.set("n", "<leader>gp", ":Gitsigns prev_hunk<CR>", { desc = "Previous git hunk", noremap = true, silent = true })     -- previous hunk
+vim.keymap.set("n", "<leader>gr", ":Gitsigns reset_hunk<CR>", { desc = "Reset git hunk", noremap = true, silent = true })       -- reset hunk
+vim.keymap.set("n", "<leader>gs", ":Gitsigns stage_hunk<CR>", { desc = "Stage git hunk", noremap = true, silent = true })       -- stage hunk
+vim.keymap.set("n", "<leader>gu", ":Gitsigns undo_stage_hunk<CR>", { desc = "Undo stage hunk", noremap = true, silent = true })	-- reset stage
+vim.keymap.set("n", "<leader>gd", open_close_diff, { desc = "Open/close git diff", noremap = true, silent = true })             -- open/close diff
+
+-- changes
+vim.keymap.set("n", "<C-z>", "u", { desc = "Undo", noremap = true, silent = true })				-- undo
+vim.keymap.set("i", "<C-z>", "<Esc>ui", { desc = "Undo", noremap = true, silent = true })
+vim.keymap.set("n", "<C-y>", "<C-r>", { desc = "Redo", noremap = true, silent = true })			-- redo
+vim.keymap.set("i", "<C-y>", "<Esc><C-r>i", { desc = "Redo", noremap = true, silent = true })
+
+-- tabs 
+vim.keymap.set("n", "tl", ":BufferLineCycleNext<CR>", { desc = "Next tab", noremap = true, silent = true })		-- right
+vim.keymap.set("n", "th", ":BufferLineCyclePrev<CR>", { desc = "Previous tab", noremap = true, silent = true })	-- left
+vim.keymap.set("n", "tc", ":Bdelete<CR>", { desc = "Close tab", noremap = true, silent = true })              	-- close
+vim.keymap.set("n", "tf", focus_tab, { desc = "Focus tab", noremap = true, silent = true })						-- focus
+
+-- code structure
+vim.keymap.set("n", "<F12>", ":SymbolsOutline<CR>", { desc = "Open/close code structure", noremap = true, silent = true })	-- open/close
+
+-- folding
+vim.keymap.set("n", "<leader>uf", "za", { desc = "Fold/unfold code block", noremap = true, silent = true })	-- fold/unfold 

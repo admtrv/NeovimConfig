@@ -9,6 +9,8 @@ This repository contains my personal, lightweight Neovim configuration tailored 
 - Bottom status bar 
 - File explorer
 - Top tab bar displaying all open files, each in its own tab
+- Code blocks folding
+- Shortcut help
 
 ---
 
