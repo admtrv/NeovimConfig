@@ -23,11 +23,35 @@ vim.o.completeopt = "menu,menuone,noselect"
 -- font
 vim.o.guifont = "FiraCode Nerd Font:h14"
 
+-- colors
+_G.COLORS = {
+	red = "#FF6188",
+    orange = "#FC9867",
+    yellow = "#FFD866",
+    green = "#A9DC76",
+    blue = "#78DCE8",
+    purple = "#AB9DF2",
+    gray = "#221F22"
+}
+
+-- comments
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "c", "cpp" },
+  callback = function()
+    vim.opt_local.comments = "s1:/*,mb:*,ex:*/"
+
+    vim.opt_local.formatoptions:remove("t")
+    vim.opt_local.formatoptions:append("c")
+    vim.opt_local.formatoptions:append("r")
+    vim.opt_local.formatoptions:append("o")
+  end,
+})
+
 -- -------
 -- plugins
 -- -------
 
-require("lazy").setup({
+require("lazy").setup({    
     -- custom start screen
     { 
     	"goolord/alpha-nvim", 
@@ -47,8 +71,9 @@ require("lazy").setup({
         		" ██████  ███ █████████████████ ████ █████ █████ ████ ██████ "
     		}
 
-    		-- yellow color
-    		vim.api.nvim_set_hl(0, "StartLogoYellow", { fg = "#ffd866" })
+    		-- color
+			vim.api.nvim_set_hl(0, "StartLogoYellow", { fg = COLORS.yellow })
+
 
     		-- centering and uploading color
     		dashboard.section.header.val = ascii_art
@@ -59,7 +84,7 @@ require("lazy").setup({
     	end
     },
     
-    -- color scheme monokai pro
+    -- scheme monokai pro
     { 
     	"loctvl842/monokai-pro.nvim", 
     	config = function()
@@ -75,11 +100,13 @@ require("lazy").setup({
     		require("nvim-tree").setup({
       			git = {
         			enable = true,
-        			ignore = true,
+        			ignore = false,
         			show_on_dirs = true,
+        			timeout = 500
       			},
       			renderer = {
         			highlight_git = true,
+        			highlight_opened_files = "all",
         			icons = {
           				show = {
             				file = true,
@@ -89,7 +116,21 @@ require("lazy").setup({
           				},
         			},
       			},
+      			update_focused_file = {
+                	enable = true,
+                	update_cwd = true,
+            	},
     		})
+    		
+    		-- color scheme
+      		vim.api.nvim_set_hl(0, "NvimTreeGitNew", { fg = COLORS.green })
+      		vim.api.nvim_set_hl(0, "NvimTreeGitStaged", { fg = COLORS.green })
+      		vim.api.nvim_set_hl(0, "NvimTreeGitDirty", { fg = COLORS.yellow })
+      		vim.api.nvim_set_hl(0, "NvimTreeGitRenamed", { fg = COLORS.purple })
+      		vim.api.nvim_set_hl(0, "NvimTreeGitDeleted", { fg = COLORS.red })
+      		vim.api.nvim_set_hl(0, "NvimTreeGitMerge", { fg = COLORS.orange })
+      		vim.api.nvim_set_hl(0, "NvimTreeGitIgnored", { fg = COLORS.gray })
+      		vim.api.nvim_set_hl(0, "NvimTreeGitUntracked", { fg = COLORS.blue })
   		end
 	},
 
@@ -143,7 +184,7 @@ require("lazy").setup({
     	"neovim/nvim-lspconfig", 
     	config = function()
         	require("lspconfig").clangd.setup({
-  				cmd = { "clangd", "--header-insertion=never", "--offset-encoding=utf-16" }, 
+  				cmd = { "clangd", "--header-insertion=always", "--offset-encoding=utf-16" }, 
   				init_options = {
     				inlayHints = {
       					parameterNames = true,
@@ -306,17 +347,23 @@ require("lazy").setup({
 
     -- autopairs
     {
-        "windwp/nvim-autopairs",
-        config = function()
-            local npairs = require("nvim-autopairs")
-            npairs.setup({})
-
-            local cmp_autopairs = require("nvim-autopairs.completion.cmp")
-            local cmp = require("cmp")
-            cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
-        end
-    },
+  		"windwp/nvim-autopairs",
+  		config = function()
+    		local npairs = require("nvim-autopairs")
+    		local cmp_autopairs = require("nvim-autopairs.completion.cmp")
+    		local cmp = require("cmp")
     
+    		npairs.setup({})
+    		
+    		local Rule = require("nvim-autopairs.rule")
+    		npairs.add_rules({
+      			Rule("/*", "*/", { "c", "cpp" }),
+    		})
+
+    		cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
+  		end
+	},
+
     -- normal tab close
     {
   		"famiu/bufdelete.nvim",
@@ -446,6 +493,84 @@ local function focus_tab()
   require("bufferline").pick_buffer()	-- require("bufferline").go_to_buffer(1, true)
 end
 
+-- capitalize
+local function capitalize(str)
+    return str:sub(1, 1):upper() .. str:sub(2)
+end
+
+-- get active tree path
+local function get_tree_path()
+    local tree_api = require("nvim-tree.api")
+    local node = tree_api.tree.get_node_under_cursor()
+    if node and node.type == "directory" then
+        return node.absolute_path
+    else
+        return vim.fn.expand("%:p:h")
+    end
+end
+
+-- create class
+local function create_class()
+    -- get current directory
+    local current_dir = get_tree_path()
+
+    -- show message
+    print(string.format("Create class in: %s/", current_dir))
+
+    -- class name
+    local file_name = vim.fn.input(string.format("Create class %s/", current_dir))
+    if file_name == "" then
+        return
+    end
+
+    -- capitalize class name
+    local class_name = capitalize(file_name)
+
+    -- define file paths
+    local header_file = current_dir .. "/" .. file_name .. ".h"
+    local source_file = current_dir .. "/" .. file_name .. ".cpp"
+
+    -- .h file content
+    local header_content = string.format([[
+/*
+ * %s.h
+ */
+
+#pragma once
+
+class %s {
+public:
+
+};
+]], file_name, class_name)
+
+    -- .cpp file content
+    local source_content = string.format([[
+/*
+ * %s.cpp
+ */
+
+#include "%s.h"
+]], file_name, file_name)
+
+    -- create files
+    local header = io.open(header_file, "w")
+    if header then
+        header:write(header_content)
+        header:close()
+    end
+
+    local source = io.open(source_file, "w")
+    if source then
+        source:write(source_content)
+        source:close()
+    end
+
+    -- clear command line
+    vim.cmd("redraw!")
+    vim.cmd("echo ''")
+end
+
 -- ---------
 -- shortcuts
 -- ---------
@@ -457,6 +582,7 @@ vim.keymap.set("n", "<leader>tf", focus_terminal, { desc = "Focus terminal", nor
 -- file explorer
 vim.keymap.set("n", "<leader>ee", ":NvimTreeToggle<CR>", { desc = "Open/close explorer", noremap = true, silent = true })	-- open/close
 vim.keymap.set("n", "<leader>ef", ":NvimTreeFocus<CR>", { desc = "Focus explorer", noremap = true, silent = true })			-- focus
+vim.keymap.set("n", "<leader>ec", create_class, { desc = "Create class", noremap = true, silent = true })					-- create class
 
 -- search
 vim.keymap.set("n", "<leader>ff", ":Telescope find_files<CR>", { desc = "Find file", noremap = true, silent = true })	-- file
@@ -467,6 +593,7 @@ vim.keymap.set("n", "<leader>rd", "<cmd>lua vim.lsp.buf.definition()<CR>", { des
 vim.keymap.set("n", "<leader>rr", "<cmd>lua vim.lsp.buf.rename()<CR>", { desc = "Rename symbol", noremap = true, silent = true })     		-- rename
 vim.keymap.set("n", "<leader>rf", "<cmd>lua vim.lsp.buf.format()<CR>", { desc = "Format document", noremap = true, silent = true })     	-- formatting
 vim.keymap.set("n", "<leader>rh", "<cmd>lua vim.lsp.buf.hover()<CR>", { desc = "Hover documentation", noremap = true, silent = true })      -- documentation
+vim.keymap.set("n", "<leader>ri", vim.lsp.buf.code_action, { desc = "Add includes", noremap = true, silent = true }) 						-- includes
 
 -- diagnostics
 vim.keymap.set("n", "<leader>de", ":Trouble diagnostics toggle<CR>", { desc = "Open/close errors", noremap = true, silent = true })	-- open/close errors
